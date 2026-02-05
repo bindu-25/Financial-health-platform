@@ -26,4 +26,4 @@ COPY . .
 EXPOSE 8080
 
 # Start server
-CMD ["gunicorn", "app:app", "--bind", "0.0.0.0:8080"]
+CMD ["gunicorn", "backend_app:app", "-k", "uvicorn.workers.UvicornWorker", "--bind", "0.0.0.0:8080"]
