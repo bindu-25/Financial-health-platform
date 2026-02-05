@@ -5,9 +5,9 @@ from fastapi.responses import FileResponse
 import os
 from pathlib import Path
 
-app = FastAPI(title="FinSight AI API")
+app = FastAPI()
 
-# CORS configuration
+# ============= ADD THIS CORS MIDDLEWARE =============
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -16,28 +16,32 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# API Routes
+# ============= YOUR EXISTING ROUTES (KEEP THESE) =============
+@app.get("/")
+def health():
+    return {"status": "Backend running successfully"}
+
+# Add your other existing routes here...
+# @app.get("/api/something")
+# def something():
+#     return {...}
+
+
+# ============= ADD THESE MOCK API ROUTES FOR DEMO =============
 @app.get("/api/health")
-def health_check():
+def api_health_check():
     return {"status": "healthy", "message": "FinSight AI Backend Running"}
 
 @app.get("/api/smes")
 def get_smes():
-    # Mock data for now
     return {
         "smes": [
-            {
-                "id": 1,
-                "name": "Sample SME",
-                "industry": "Retail",
-                "creditScore": 75
-            }
+            {"id": 1, "name": "Sample SME", "industry": "Retail", "creditScore": 75}
         ]
     }
 
 @app.get("/api/smes/{sme_id}/dashboard")
 def get_dashboard(sme_id: int):
-    # Mock dashboard data
     return {
         "metrics": {
             "totalRevenue": 5000000,
@@ -90,6 +94,7 @@ def get_recommendations(sme_id: int):
         ]
     }
 
+# ============= ADD THIS FRONTEND SERVING CODE AT THE END =============
 # Serve React frontend
 frontend_build_dir = Path(__file__).parent / "frontend" / "build"
 
@@ -102,7 +107,7 @@ if frontend_build_dir.exists():
     async def serve_frontend(full_path: str):
         # If it's an API route, let FastAPI handle it
         if full_path.startswith("api/"):
-            return {"error": "Not found"}
+            return {"error": "API endpoint not found"}
         
         # Check if file exists in build directory
         file_path = frontend_build_dir / full_path
