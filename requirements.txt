@@ -1,4 +1,8 @@
-# Core
+setuptools>=68.0.0
+wheel
+pip>=23.0
+
+#Core
 pandas==2.0.3
 numpy==1.25.2
 
