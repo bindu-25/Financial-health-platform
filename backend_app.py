@@ -4,6 +4,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 import os
 from pathlib import Path
+from fastapi.staticfiles import StaticFiles
 
 app = FastAPI()
 
@@ -121,3 +122,26 @@ if __name__ == "__main__":
     import uvicorn
     port = int(os.getenv("PORT", 8000))
     uvicorn.run(app, host="0.0.0.0", port=port)
+
+
+# Serve React frontend
+frontend_build_dir = Path(__file__).parent / "frontend" / "build"
+
+if frontend_build_dir.exists():
+    # Serve static files (JS, CSS, images)
+    app.mount("/static", StaticFiles(directory=str(frontend_build_dir / "static")), name="static")
+    
+    # Serve index.html for all non-API routes (SPA routing)
+    @app.get("/{full_path:path}")
+    async def serve_frontend(full_path: str):
+        # If it's an API route, let FastAPI handle it
+        if full_path.startswith("api/"):
+            return {"error": "API endpoint not found"}
+        
+        # Check if file exists in build directory
+        file_path = frontend_build_dir / full_path
+        if file_path.is_file():
+            return FileResponse(file_path)
+        
+        # Otherwise serve index.html (for React Router)
+        return FileResponse(frontend_build_dir / "index.html")
