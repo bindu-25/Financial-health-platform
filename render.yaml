@@ -1,39 +1,23 @@
 services:
-  # Backend API
   - type: web
     name: finsight-backend
     env: python
-    region: singapore
-    plan: free
-    buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn src.api.routes:app --host 0.0.0.0 --port $PORT
-    envVars:
-      - key: PYTHON_VERSION
-        value: 3.11.8
-      - key: DATABASE_URL
-        fromDatabase:
-          name: finsight-db
-          property: connectionString
-      - key: OPENROUTER_API_KEY
-        sync: false
-      - key: ENCRYPTION_KEY
-        generateValue: true
-    
-  # Frontend React App
-  - type: web
-    name: finsight-frontend
-    env: static
-    region: singapore
-    plan: free
-    buildCommand: cd frontend && npm install && npm run build
-    staticPublishPath: frontend/build
-    routes:
-      - type: rewrite
-        source: /*
-        destination: /index.html
 
-databases:
-  # PostgreSQL Database
-  - name: finsight-db
-    plan: free
-    region: singapore
+    # 🔒 HARD LOCK PYTHON VERSION (Render CANNOT override this)
+    pythonVersion: 3.11.8
+
+    # 📁 Build from repo root
+    rootDir: .
+
+    # 🧱 Build step (explicit + verifiable)
+    buildCommand: |
+      echo "Using Python:"
+      python --version
+      pip install --upgrade pip setuptools wheel
+      pip install -r requirements.txt
+
+    # 🚀 Start command
+    startCommand: gunicorn app:app
+
+    # 🔁 Auto deploy on commit
+    autoDeploy: true
