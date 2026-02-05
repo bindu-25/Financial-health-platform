@@ -1,29 +1,45 @@
-FROM python:3.11.8-slim
+# Multi-stage build: Frontend + Backend
+FROM node:18-alpine AS frontend-build
 
-# Prevent Python buffering
-ENV PYTHONUNBUFFERED=1
+# Build frontend
+WORKDIR /app/frontend
+COPY frontend/package*.json ./
+RUN npm install
+COPY frontend/ ./
+RUN npm run build
+
+# Python backend stage
+FROM python:3.11-slim
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    gcc \
+    postgresql-client \
+    && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
 WORKDIR /app
 
-# System deps for pandas/numpy
-RUN apt-get update && apt-get install -y \
-    build-essential \
-    gcc \
-    && rm -rf /var/lib/apt/lists/*
-
-# Copy dependency file first (cache-friendly)
+# Copy backend requirements and install
 COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt --break-system-packages
 
-# Install Python dependencies
-RUN pip install --upgrade pip setuptools wheel
-RUN pip install -r requirements.txt
+# Copy backend code
+COPY backend_app.py .
+COPY src/ ./src/
+COPY config/ ./config/
 
-# Copy the rest of the app
-COPY . .
+# Copy built frontend from previous stage
+COPY --from=frontend-build /app/frontend/build ./frontend/build
 
-# Railway uses port 8080
-EXPOSE 8080
+# Create startup script
+RUN echo '#!/bin/bash\n\
+echo "Starting FinSight AI..."\n\
+uvicorn backend_app:app --host 0.0.0.0 --port ${PORT:-8000}\n\
+' > /app/start.sh && chmod +x /app/start.sh
 
-# Start server
-CMD ["gunicorn", "backend_app:app", "-k", "uvicorn.workers.UvicornWorker", "--bind", "0.0.0.0:8080"]
+# Expose port
+EXPOSE 8000
+
+# Run application
+CMD ["/app/start.sh"]
