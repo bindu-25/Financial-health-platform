@@ -1,6 +1,6 @@
+pip>=23.1
 setuptools>=68.0.0
 wheel
-pip>=23.0
 
 #Core
 pandas==2.0.3
