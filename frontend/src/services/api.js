@@ -6,7 +6,9 @@
 import axios from 'axios';
 
 // Use environment variable for production, fallback to localhost for development
-const API_BASE_URL = const API_BASE_URL = "https://financial-health-platform-production.up.railway.app";
+const API_BASE_URL =
+  process.env.REACT_APP_API_BASE_URL ||
+  "https://financial-health-platform-production.up.railway.app";
 
 console.log('API Base URL:', API_BASE_URL); // Debug log
 
