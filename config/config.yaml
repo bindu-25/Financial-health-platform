@@ -1,0 +1,59 @@
+# Application Configuration
+app:
+  name: "SME Financial Health Platform"
+  version: "1.0.0"
+  host: "0.0.0.0"
+  port: 8000
+
+# Financial Calculation Settings
+financial:
+  expense_ratios:
+    salaries: 0.12
+    rent: 0.06
+    utilities: 0.02
+    marketing: 0.04
+    logistics: 0.05
+    insurance: 0.01
+    other: 0.05
+  
+  tax_rate: 0.25
+  depreciation_rate: 0.02
+  interest_rate: 0.03
+
+# Forecasting Settings
+forecasting:
+  periods: 6
+  confidence_interval: 0.95
+  methods:
+    - arima
+    - exponential_smoothing
+
+# Credit Scoring Weights
+credit_scoring:
+  liquidity_weight: 0.25
+  profitability_weight: 0.25
+  risk_weight: 0.30
+  management_weight: 0.20
+
+# Industry Benchmarks (Retail Electronics)
+benchmarks:
+  retail_electronics:
+    gross_margin_min: 0.30
+    gross_margin_max: 0.50
+    net_profit_margin_min: 0.05
+    net_profit_margin_max: 0.15
+    operating_expense_ratio: 0.35
+    inventory_turnover_min: 4
+    inventory_turnover_max: 8
+
+# Database
+database:
+  pool_size: 10
+  max_overflow: 20
+  pool_timeout: 30
+
+# AI Settings
+ai:
+  model: "anthropic/claude-3.5-sonnet"
+  max_tokens: 1000
+  temperature: 0.7

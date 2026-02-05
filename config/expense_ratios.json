@@ -1,0 +1,46 @@
+{
+  "retail_electronics": {
+    "salaries": 0.12,
+    "rent": 0.06,
+    "utilities": 0.02,
+    "marketing": 0.04,
+    "logistics": 0.05,
+    "insurance": 0.01,
+    "other": 0.05
+  },
+  "manufacturing": {
+    "salaries": 0.18,
+    "rent": 0.08,
+    "utilities": 0.05,
+    "marketing": 0.03,
+    "raw_materials": 0.40,
+    "maintenance": 0.04,
+    "other": 0.07
+  },
+  "services": {
+    "salaries": 0.35,
+    "rent": 0.10,
+    "utilities": 0.03,
+    "marketing": 0.08,
+    "software": 0.05,
+    "other": 0.04
+  },
+  "agriculture": {
+    "labor": 0.20,
+    "seeds_fertilizer": 0.25,
+    "equipment": 0.10,
+    "irrigation": 0.08,
+    "storage": 0.05,
+    "transport": 0.07,
+    "other": 0.05
+  },
+  "ecommerce": {
+    "salaries": 0.15,
+    "platform_fees": 0.08,
+    "shipping": 0.12,
+    "marketing": 0.10,
+    "technology": 0.06,
+    "customer_service": 0.04,
+    "other": 0.05
+  }
+}
