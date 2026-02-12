@@ -92,7 +92,7 @@ class DataCleaner:
         df['month'] = pd.to_datetime(df['Order Date']).dt.month
         df['quarter'] = pd.to_datetime(df['Order Date']).dt.quarter
         
-        # 9. Flag outliers (optional - keep for now but mark)
+        # 9. Flag outliers
         revenue_q99 = df['revenue'].quantile(0.99)
         df['is_outlier'] = df['revenue'] > revenue_q99
         
@@ -128,7 +128,7 @@ class DataCleaner:
         for col in risk_columns:
             df[col] = pd.to_numeric(df[col], errors='coerce')
         
-        # Fill missing risk values with median (conservative approach)
+        # Fill missing risk values with median 
         for col in risk_columns:
             if df[col].isnull().any():
                 median_val = df[col].median()

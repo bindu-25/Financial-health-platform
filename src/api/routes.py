@@ -233,7 +233,6 @@ def run_complete_analysis(sme_id: int, analysis_request: AnalysisRequest):
     """
     try:
         # This would trigger the full analysis pipeline
-        # For now, return a placeholder
         return {
             "status": "success",
             "message": f"Analysis started for SME {sme_id}",

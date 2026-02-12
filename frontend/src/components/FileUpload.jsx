@@ -24,18 +24,20 @@ const FileUpload = ({ onUploadSuccess }) => {
   };
 
   const handleUpload = async () => {
-    if (!file) return;
+    if (!file)
+      alert('Please select a file') 
+      return;
 
     setUploading(true);
     setError(null);
 
     try {
       const result = await uploadAndAnalyze(file);
-      console.log('Upload result:', result);
       onUploadSuccess(result);
-      setFile(null);
+      alert('File analyzed successfully! Check the dashboard for insights.');
     } catch (err) {
-      setError(err.response?.data?.detail || 'Upload failed. Please try again.');
+      setError(err.message || 'Upload failed');
+      console.error('Upload error:', err);
     } finally {
       setUploading(false);
     }

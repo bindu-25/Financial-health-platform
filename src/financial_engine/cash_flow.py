@@ -127,7 +127,7 @@ class CashFlowAnalyzer:
         
         df = monthly_financials.copy()
         
-        # Estimate working capital components (simplified)
+        # Estimate working capital components
         # Accounts Receivable: Assume 30 days collection period (1 month revenue)
         df['accounts_receivable'] = df['total_revenue']
         

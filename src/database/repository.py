@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 import logging
 import sys
 
-# Fix import paths
+
 if __name__ == "__main__":
     # When run directly
     sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))

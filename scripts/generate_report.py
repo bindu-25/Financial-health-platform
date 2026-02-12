@@ -4,7 +4,6 @@ Creates investor-ready financial reports
 """
 
 import sys
-# ✅ FORCE UTF-8 OUTPUT (Windows fix)
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
 
