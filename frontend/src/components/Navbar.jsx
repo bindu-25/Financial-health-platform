@@ -14,52 +14,45 @@ const Navbar = ({ onNavigate, currentView, onLanguageChange, currentLanguage }) 
     { code: 'mr', name: 'मराठी', flag: '🇮🇳' },
   ];
 
+  const navItems = [
+    { id: 'dashboard', label: t('dashboard', currentLanguage) || 'Overview' },
+    { id: 'analysis', label: t('analysis', currentLanguage) || 'Analysis' },
+    { id: 'gst', label: 'GST' },
+    { id: 'benchmarks', label: 'Benchmarks' },
+    { id: 'reports', label: t('reports', currentLanguage) || 'Reports' },
+    { id: 'integrations', label: 'Integrations' },
+    { id: 'upload', label: 'Upload' },
+  ];
+
   return (
     <nav style={styles.navbar}>
       <div style={styles.container}>
         <div style={styles.brand}>
           <BarChart3 size={32} style={styles.icon} />
           <div style={styles.brandText}>
-            <span style={styles.brandTitle}>{t('brand', currentLanguage)}</span>
-            <span style={styles.brandSubtitle}>{t('brandSubtitle', currentLanguage)}</span>
+            <span style={styles.brandTitle}>FinSight AI</span>
+            <span style={styles.brandSubtitle}>SME Financial Intelligence Platform</span>
           </div>
         </div>
         
         <div style={styles.navLinks}>
-          <button
-            onClick={() => onNavigate('dashboard')}
-            style={{
-              ...styles.navButton,
-              ...(currentView === 'dashboard' && styles.navButtonActive),
-            }}
-          >
-            {t('dashboard', currentLanguage)}
-          </button>
-          <button
-            onClick={() => onNavigate('analysis')}
-            style={{
-              ...styles.navButton,
-              ...(currentView === 'analysis' && styles.navButtonActive),
-            }}
-          >
-            {t('analysis', currentLanguage)}
-          </button>
-          <button
-            onClick={() => onNavigate('reports')}
-            style={{
-              ...styles.navButton,
-              ...(currentView === 'reports' && styles.navButtonActive),
-            }}
-          >
-            {t('reports', currentLanguage)}
-          </button>
+          {navItems.map(item => (
+            <button
+              key={item.id}
+              onClick={() => onNavigate(item.id)}
+              style={{
+                ...styles.navButton,
+                ...(currentView === item.id && styles.navButtonActive),
+              }}
+            >
+              {item.label}
+            </button>
+          ))}
         </div>
 
         <div style={styles.rightSection}>
-          {/* Role Badge */}
           <RoleBadge />
 
-          {/* Language Selector */}
           <div style={styles.languageSelector}>
             <button
               onClick={() => setShowLanguages(!showLanguages)}
@@ -91,7 +84,6 @@ const Navbar = ({ onNavigate, currentView, onLanguageChange, currentLanguage }) 
             )}
           </div>
 
-          {/* Encryption Indicator */}
           <EncryptionIndicator />
         </div>
       </div>
@@ -109,13 +101,14 @@ const styles = {
     zIndex: 1000,
   },
   container: {
-    maxWidth: '1400px',
+    maxWidth: '1600px',
     margin: '0 auto',
     padding: '0 2rem',
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
     gap: '1rem',
+    flexWrap: 'wrap',
   },
   brand: {
     display: 'flex',
@@ -144,14 +137,15 @@ const styles = {
   navLinks: {
     display: 'flex',
     gap: '0.5rem',
+    flexWrap: 'wrap',
   },
   navButton: {
-    padding: '0.625rem 1.25rem',
+    padding: '0.625rem 1rem',
     backgroundColor: 'transparent',
     color: '#fff',
     border: 'none',
     borderRadius: '8px',
-    fontSize: '0.95rem',
+    fontSize: '0.875rem',
     fontWeight: '500',
     cursor: 'pointer',
     transition: 'all 0.2s',
