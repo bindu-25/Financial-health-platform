@@ -18,15 +18,17 @@ function App() {
   const [language, setLanguage] = useState('en');
   const [smeId] = useState(1);
   const [dashboardData, setDashboardData] = useState(null);
+  const [refreshKey, setRefreshKey] = useState(0); // Force component refresh
 
   useEffect(() => {
     loadDashboardData();
-  }, []);
+  }, [refreshKey]); // Reload when refreshKey changes
 
   const loadDashboardData = async () => {
     try {
       const res = await fetch(`${API_URL}/api/smes/${smeId}/dashboard`);
       const data = await res.json();
+      console.log('App loaded dashboard data:', data);
       setDashboardData(data);
     } catch (error) {
       console.error('Error loading dashboard:', error);
@@ -34,14 +36,17 @@ function App() {
   };
 
   const handleFileUploadSuccess = (result) => {
-    console.log('File uploaded:', result);
-    loadDashboardData();
+    console.log('File uploaded successfully:', result);
+    // Increment refresh key to force reload
+    setRefreshKey(prev => prev + 1);
+    // Navigate to dashboard
+    setCurrentView('dashboard');
   };
 
   const renderContent = () => {
     switch (currentView) {
       case 'dashboard':
-        return <Dashboard smeId={smeId} language={language} />;
+        return <Dashboard key={refreshKey} smeId={smeId} language={language} />;
       
       case 'analysis':
         return (
@@ -86,7 +91,7 @@ function App() {
         );
       
       default:
-        return <Dashboard smeId={smeId} language={language} />;
+        return <Dashboard key={refreshKey} smeId={smeId} language={language} />;
     }
   };
 

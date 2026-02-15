@@ -4,7 +4,6 @@ import CashFlowChart from './CashFlowChart';
 import CreditScoreGauge from './CreditScoreGauge';
 import ForecastChart from './ForecastChart';
 import RecommendationsList from './RecommendationsList';
-import { getDashboard } from '../services/api';
 import { t } from '../translations';
 
 const Dashboard = ({ smeId = 1, language = 'en' }) => {
@@ -19,12 +18,14 @@ const Dashboard = ({ smeId = 1, language = 'en' }) => {
   const loadDashboard = async () => {
     try {
       setLoading(true);
-      const result = await getDashboard(smeId);
+      const response = await fetch(`/api/smes/${smeId}/dashboard`);
+      const result = await response.json();
+      console.log('Dashboard data loaded:', result);
       setData(result);
+      setError(null);
     } catch (err) {
+      console.error('Error loading dashboard:', err);
       setError(err.message);
-      // Use mock data for demo
-      setData(mockData);
     } finally {
       setLoading(false);
     }
@@ -39,7 +40,7 @@ const Dashboard = ({ smeId = 1, language = 'en' }) => {
     );
   }
 
-  if (error && !data) {
+  if (error) {
     return (
       <div style={styles.error}>
         <p>{t('error', language)}: {error}</p>
@@ -50,52 +51,66 @@ const Dashboard = ({ smeId = 1, language = 'en' }) => {
     );
   }
 
+  if (!data) {
+    return <div style={styles.error}>No data available</div>;
+  }
+
+  // Extract data with fallbacks
+  const metricsData = {
+    total_revenue: data.profit_loss?.revenue || data.metrics?.totalRevenue || 0,
+    total_profit: data.profit_loss?.net_profit || data.metrics?.netProfit || 0,
+    avg_net_margin: data.profit_loss?.margin || data.metrics?.profitMargin || 0,
+    credit_score: data.credit_score?.score || data.metrics?.creditScore || 0,
+    credit_rating: data.credit_score?.rating || 'N/A',
+  };
+
+  // Cash flow data
+  const cashFlowData = data.cashFlow ? [
+    {
+      period: '6 months avg',
+      cash_inflow: data.cashFlow.inflow?.reduce((a, b) => a + b, 0) / (data.cashFlow.inflow?.length || 1),
+      total_cash_outflow: data.cashFlow.outflow?.reduce((a, b) => a + b, 0) / (data.cashFlow.outflow?.length || 1),
+      net_cash_flow: (data.cashFlow.inflow?.reduce((a, b) => a + b, 0) - data.cashFlow.outflow?.reduce((a, b) => a + b, 0)) / (data.cashFlow.inflow?.length || 1)
+    }
+  ] : [];
+
+  // Forecast data
+  const forecastData = data.forecasts?.next_6_months?.map((value, idx) => ({
+    period: `Month ${idx + 1}`,
+    forecast_revenue: value,
+    lower_bound: value * 0.9,
+    upper_bound: value * 1.1,
+  })) || [];
+
   return (
     <div style={styles.container}>
       <FinancialMetrics 
-        data={{
-          total_revenue: 55755479.59,
-          total_profit: 7770372.41,
-          avg_net_margin: 0.1399,
-          credit_score: 74.9,
-          credit_rating: 'A',
-        }}
+        data={metricsData}
         language={language}
       />
       
       <div style={styles.chartsRow}>
         <div style={styles.chartCol}>
-          <CashFlowChart data={mockCashFlowData} language={language} />
+          <CashFlowChart data={cashFlowData} language={language} />
         </div>
         <div style={styles.chartCol}>
-          <CreditScoreGauge score={74.9} rating="A" language={language} />
+          <CreditScoreGauge 
+            score={metricsData.credit_score} 
+            rating={metricsData.credit_rating} 
+            language={language} 
+          />
         </div>
       </div>
 
-      <ForecastChart data={mockForecastData} language={language} />
+      <ForecastChart data={forecastData} language={language} />
       
-      <RecommendationsList recommendations={[]} language={language} />
+      <RecommendationsList 
+        recommendations={[]} 
+        language={language} 
+      />
     </div>
   );
 };
-
-// Mock data for demo
-const mockCashFlowData = [
-  { period: '2021-01', cash_inflow: 900000, total_cash_outflow: 750000, net_cash_flow: 150000 },
-  { period: '2021-02', cash_inflow: 950000, total_cash_outflow: 780000, net_cash_flow: 170000 },
-  { period: '2021-03', cash_inflow: 1000000, total_cash_outflow: 800000, net_cash_flow: 200000 },
-];
-
-const mockForecastData = [
-  { period: '2021-04', forecast_revenue: 850000, lower_bound: 750000, upper_bound: 950000 },
-  { period: '2021-05', forecast_revenue: 880000, lower_bound: 770000, upper_bound: 990000 },
-  { period: '2021-06', forecast_revenue: 920000, lower_bound: 800000, upper_bound: 1040000 },
-  { period: '2021-07', forecast_revenue: 950000, lower_bound: 820000, upper_bound: 1080000 },
-  { period: '2021-08', forecast_revenue: 980000, lower_bound: 850000, upper_bound: 1110000 },
-  { period: '2021-09', forecast_revenue: 1000000, lower_bound: 870000, upper_bound: 1130000 },
-];
-
-const mockData = {};
 
 const styles = {
   container: {

@@ -53,21 +53,19 @@ const FileUpload = ({ onUploadSuccess }) => {
       const result = await response.json();
       
       setSuccess(true);
-      setFile(null);
       
-      // Clear file input
-      document.getElementById('file-upload').value = '';
-      
-      // Notify parent component to refresh dashboard
-      if (onUploadSuccess) {
-        onUploadSuccess(result);
-      }
-      
-      // Show success message for 3 seconds then redirect to dashboard
+      // Show success message briefly
       setTimeout(() => {
-        window.location.hash = '#dashboard';
-        window.location.reload();
-      }, 2000);
+        setFile(null);
+        // Clear file input
+        const fileInput = document.getElementById('file-upload');
+        if (fileInput) fileInput.value = '';
+        
+        // Notify parent component - this will refresh dashboard
+        if (onUploadSuccess) {
+          onUploadSuccess(result);
+        }
+      }, 1500);
 
     } catch (err) {
       setError(err.message || 'Upload failed');
