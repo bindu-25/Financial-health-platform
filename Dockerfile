@@ -24,6 +24,9 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt --break-system-packages
 
+# Install spacy model
+RUN python -m spacy download en_core_web_sm
+
 # Copy backend code
 COPY backend_app.py .
 COPY src/ ./src/
