@@ -1,138 +1,107 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './App.css';
-import Navbar from './components/Navbar';
-import Dashboard from './components/Dashboard';
-import FileUpload from './components/FileUpload';
-import AnalysisSection from './components/AnalysisSection';
-import ReportsSection from './components/ReportsSection';
-import GSTDashboard from './components/GSTDashboard';
-import RBIBenchmarks from './components/RBIBenchmarks';
-import IntegrationsHub from './components/IntegrationsHub';
-import RoleBasedView from './components/RoleBasedView';
-import { t } from './translations';
+
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
 function App() {
-  const [currentView, setCurrentView] = useState('dashboard');
-  const [currentLanguage, setCurrentLanguage] = useState('en');
-  const [uploadData, setUploadData] = useState(null);
+  const [smeId, setSmeId] = useState(1);
+  const [dashboardData, setDashboardData] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState('');
 
-  const handleUploadSuccess = (data) => {
-    console.log('File uploaded successfully:', data);
-    setUploadData(data);
-    setCurrentView('dashboard');
-  };
-
-  const handleNavigate = (view) => {
-    setCurrentView(view);
-  };
-
-  const handleLanguageChange = (lang) => {
-    setCurrentLanguage(lang);
-  };
-
-  const renderContent = () => {
-    switch (currentView) {
-      case 'dashboard':
-        return <Dashboard smeId={1} language={currentLanguage} />;
-      
-      case 'analysis':
-        return (
-          <RoleBasedView requiredRole="manager">
-            <AnalysisSection language={currentLanguage} />
-          </RoleBasedView>
-        );
-      
-      case 'reports':
-        return (
-          <RoleBasedView requiredRole="manager">
-            <ReportsSection language={currentLanguage} />
-          </RoleBasedView>
-        );
-      
-      case 'upload':
-        return (
-          <RoleBasedView requiredRole="manager">
-            <FileUpload onUploadSuccess={handleUploadSuccess} language={currentLanguage} />
-          </RoleBasedView>
-        );
-      
-      case 'gst':
-        return <GSTDashboard language={currentLanguage} />;
-      
-      case 'benchmarks':
-        return <RBIBenchmarks language={currentLanguage} />;
-      
-      case 'integrations':
-        return (
-          <RoleBasedView requiredRole="admin">
-            <IntegrationsHub language={currentLanguage} />
-          </RoleBasedView>
-        );
-      
-      default:
-        return <Dashboard smeId={1} language={currentLanguage} />;
+  // Load dashboard data
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/api/smes/${smeId}/dashboard`);
+      const data = await res.json();
+      setDashboardData(data);
+    } catch (error) {
+      setMessage('Error loading data: ' + error.message);
     }
+    setLoading(false);
   };
+
+  // Handle file upload
+  const handleUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('sme_id', smeId);
+
+    setLoading(true);
+    setMessage('Uploading...');
+
+    try {
+      const res = await fetch(`${API_URL}/api/analyze`, {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (!res.ok) throw new Error('Upload failed');
+      
+      setMessage('Upload successful! Refreshing dashboard...');
+      await loadData(); // Auto-refresh after upload
+      setMessage('Dashboard updated!');
+      setTimeout(() => setMessage(''), 3000);
+    } catch (error) {
+      setMessage('Upload error: ' + error.message);
+    }
+    setLoading(false);
+  };
+
+  // Load on mount
+  useEffect(() => {
+    loadData();
+  }, [smeId]);
 
   return (
     <div className="App">
-      <Navbar 
-        onNavigate={handleNavigate}
-        currentView={currentView}
-        onLanguageChange={handleLanguageChange}
-        currentLanguage={currentLanguage}
-      />
-      
-      <div className="main-content">
-        <div className="secondary-nav">
-          <button 
-            className={currentView === 'dashboard' ? 'nav-tab active' : 'nav-tab'}
-            onClick={() => handleNavigate('dashboard')}
-          >
-            📊 {t('overview', currentLanguage)}
-          </button>
-          <button 
-            className={currentView === 'analysis' ? 'nav-tab active' : 'nav-tab'}
-            onClick={() => handleNavigate('analysis')}
-          >
-            📈 {t('analysis', currentLanguage)}
-          </button>
-          <button 
-            className={currentView === 'gst' ? 'nav-tab active' : 'nav-tab'}
-            onClick={() => handleNavigate('gst')}
-          >
-            🧾 {t('gst', currentLanguage)}
-          </button>
-          <button 
-            className={currentView === 'benchmarks' ? 'nav-tab active' : 'nav-tab'}
-            onClick={() => handleNavigate('benchmarks')}
-          >
-            🎯 {t('benchmarks', currentLanguage)}
-          </button>
-          <button 
-            className={currentView === 'reports' ? 'nav-tab active' : 'nav-tab'}
-            onClick={() => handleNavigate('reports')}
-          >
-            📄 {t('reports', currentLanguage)}
-          </button>
-          <button 
-            className={currentView === 'integrations' ? 'nav-tab active' : 'nav-tab'}
-            onClick={() => handleNavigate('integrations')}
-          >
-            🔗 {t('integrations', currentLanguage)}
-          </button>
-          <button 
-            className={currentView === 'upload' ? 'nav-tab active' : 'nav-tab'}
-            onClick={() => handleNavigate('upload')}
-          >
-            ⬆️ {t('upload', currentLanguage)}
+      <header>
+        <h1>Financial Dashboard</h1>
+        <div className="controls">
+          <input
+            type="file"
+            accept=".xlsx,.xls,.csv"
+            onChange={handleUpload}
+            disabled={loading}
+            id="fileInput"
+            style={{display: 'none'}}
+          />
+          <label htmlFor="fileInput" className="btn">
+            📤 Upload Excel
+          </label>
+          <button onClick={loadData} disabled={loading} className="btn">
+            🔄 Refresh
           </button>
         </div>
+      </header>
 
-        <div className="content-area">
-          {renderContent()}
+      {message && <div className="message">{message}</div>}
+      
+      {loading && <div className="loading">Loading...</div>}
+      
+      {dashboardData && !loading && (
+        <div className="dashboard">
+          <div className="metrics">
+            <div className="card">
+              <h3>Credit Score</h3>
+              <div className="value">{dashboardData.credit_score?.score || 'N/A'}</div>
+            </div>
+            <div className="card">
+              <h3>Revenue</h3>
+              <div className="value">₹{(dashboardData.profit_loss?.revenue || 0).toLocaleString()}</div>
+            </div>
+            <div className="card">
+              <h3>Net Profit</h3>
+              <div className="value">₹{(dashboardData.profit_loss?.net_profit || 0).toLocaleString()}</div>
+            </div>
+          </div>
+          <div className="timestamp">Last updated: {new Date().toLocaleString()}</div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

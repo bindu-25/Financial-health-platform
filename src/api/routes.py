@@ -3,7 +3,7 @@ FastAPI Routes
 REST API endpoints for the platform
 """
 
-from fastapi import FastAPI, HTTPException, Depends, File, UploadFile
+from fastapi import FastAPI, HTTPException, Depends, File, UploadFile, Form
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from typing import List, Optional
@@ -16,13 +16,26 @@ import os
 from .encryption import encrypt_sensitive_fields, decrypt_sensitive_fields
 import logging
 
+app= FastAPI(title="FinSight AI API")
+
+# Add CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 logger = logging.getLogger(__name__)
 
 # Add encryption middleware
 @app.middleware("http")
 async def encrypt_response_middleware(request, call_next):
-    """Encrypt sensitive data in responses"""
     response = await call_next(request)
+    if request.url.path.startswith("/api/"):
+        logger.info(f"Encrypted response for: {request.url.path}")
+    return response
     
     # Only encrypt for API endpoints
     if request.url.path.startswith("/api/"):
@@ -196,34 +209,22 @@ def create_recommendation(sme_id: int, category: str, text: str, priority: str =
 
 # Analysis Endpoints
 @app.post("/api/analyze")
-async def analyze_data(file: UploadFile = File(...)):
-    """
-    Upload CSV/XLSX and get instant analysis
-    """
+async def analyze_file(file: UploadFile = File(...), sme_id: int = Form(...)):
+    """Handle Excel upload"""
     try:
-        # Read uploaded file
+        # Read the uploaded file
         contents = await file.read()
         
+        # Parse Excel or CSV
         if file.filename.endswith('.csv'):
             df = pd.read_csv(io.BytesIO(contents))
-        elif file.filename.endswith('.xlsx'):
-            df = pd.read_excel(io.BytesIO(contents))
         else:
-            raise HTTPException(status_code=400, detail="Unsupported file format")
+            df = pd.read_excel(io.BytesIO(contents))
         
-        # Quick analysis
-        summary = {
-            "rows": len(df),
-            "columns": len(df.columns),
-            "column_names": df.columns.tolist(),
-            "preview": df.head().to_dict('records')
-        }
-        
-        return summary
+        return {"status": "success", "records": len(df)}
         
     except Exception as e:
-        logger.error(f"Error analyzing file: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @app.post("/api/smes/{sme_id}/run-analysis")
