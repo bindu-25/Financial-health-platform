@@ -7,6 +7,10 @@ import pandas as pd
 import io
 import os
 from datetime import datetime
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 app = FastAPI()
 
@@ -19,6 +23,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# In-memory storage for uploaded data
+uploaded_data_store = {}
+
 # Health check
 @app.get("/api/health")
 def api_health_check():
@@ -29,6 +36,7 @@ def api_health_check():
 async def analyze_file(file: UploadFile = File(...), sme_id: int = Form(default=1)):
     """Upload and analyze Excel/CSV file"""
     try:
+        logger.info(f"Received file: {file.filename}")
         contents = await file.read()
         
         # Parse file
@@ -37,29 +45,111 @@ async def analyze_file(file: UploadFile = File(...), sme_id: int = Form(default=
         else:
             df = pd.read_excel(io.BytesIO(contents))
         
+        logger.info(f"Parsed file with {len(df)} rows and columns: {df.columns.tolist()}")
+        
+        # Normalize column names (case insensitive)
+        df.columns = df.columns.str.lower().str.strip()
+        
         # Basic validation
         required_cols = ['date', 'revenue', 'expenses']
-        missing = [col for col in required_cols if col.lower() not in [c.lower() for c in df.columns]]
+        missing = [col for col in required_cols if col not in df.columns]
         
         if missing:
-            raise HTTPException(400, f"Missing columns: {missing}")
+            raise HTTPException(400, f"Missing required columns: {missing}. Found columns: {df.columns.tolist()}")
         
-        # Process data
-        total_revenue = df['revenue'].sum() if 'revenue' in df.columns else 0
-        total_expenses = df['expenses'].sum() if 'expenses' in df.columns else 0
+        # Convert date column
+        df['date'] = pd.to_datetime(df['date'])
+        
+        # Calculate metrics
+        total_revenue = float(df['revenue'].sum())
+        total_expenses = float(df['expenses'].sum())
+        profit = total_revenue - total_expenses
+        margin = (profit / total_revenue * 100) if total_revenue > 0 else 0
+        
+        # Calculate GST if columns exist
+        gst_collected = float(df['gst_collected'].sum()) if 'gst_collected' in df.columns else total_revenue * 0.18
+        gst_paid = float(df['gst_paid'].sum()) if 'gst_paid' in df.columns else total_expenses * 0.18
+        net_gst = gst_collected - gst_paid
+        
+        # Calculate credit score (simplified)
+        profitability_score = min(100, max(0, margin * 5))
+        liquidity_score = 80  # Simplified
+        credit_score = (profitability_score * 0.4 + liquidity_score * 0.6)
+        
+        # Determine rating
+        if credit_score >= 85:
+            rating = 'AA'
+        elif credit_score >= 70:
+            rating = 'A'
+        elif credit_score >= 55:
+            rating = 'B'
+        elif credit_score >= 40:
+            rating = 'C'
+        else:
+            rating = 'D'
+        
+        # Store processed data
+        processed_data = {
+            'credit_score': {
+                'score': credit_score,
+                'rating': rating,
+                'factors': {
+                    'profitability': profitability_score,
+                    'liquidity': liquidity_score,
+                    'leverage': 75,
+                    'efficiency': 72
+                }
+            },
+            'profit_loss': {
+                'revenue': total_revenue,
+                'expenses': total_expenses,
+                'net_profit': profit,
+                'margin': margin
+            },
+            'gst': {
+                'collected': gst_collected,
+                'paid': gst_paid,
+                'net': net_gst,
+                'compliance_score': 95
+            },
+            'metrics': {
+                'totalRevenue': total_revenue,
+                'netProfit': profit,
+                'profitMargin': margin,
+                'creditScore': credit_score
+            },
+            'cashFlow': {
+                'months': df['date'].dt.strftime('%b').tolist()[-6:],
+                'inflow': df['revenue'].tolist()[-6:],
+                'outflow': df['expenses'].tolist()[-6:]
+            },
+            'forecasts': {
+                'next_6_months': [total_revenue/len(df) * 1.05**i for i in range(1, 7)]
+            },
+            'last_updated': datetime.now().isoformat()
+        }
+        
+        # Store in memory
+        uploaded_data_store[sme_id] = processed_data
+        
+        logger.info(f"Successfully processed file for SME {sme_id}")
         
         return {
             "status": "success",
             "records": len(df),
             "sme_id": sme_id,
             "summary": {
-                "total_revenue": float(total_revenue),
-                "total_expenses": float(total_expenses),
-                "profit": float(total_revenue - total_expenses)
+                "total_revenue": total_revenue,
+                "total_expenses": total_expenses,
+                "profit": profit,
+                "margin": margin,
+                "credit_score": credit_score,
+                "rating": rating
             }
         }
         
     except Exception as e:
+        logger.error(f"Error processing file: {str(e)}")
         raise HTTPException(status_code=400, detail=str(e))
 
 @app.get("/api/smes")
@@ -72,6 +162,13 @@ def get_smes():
 
 @app.get("/api/smes/{sme_id}/dashboard")
 def get_dashboard(sme_id: int):
+    # Return uploaded data if available, otherwise return default data
+    if sme_id in uploaded_data_store:
+        logger.info(f"Returning uploaded data for SME {sme_id}")
+        return uploaded_data_store[sme_id]
+    
+    # Default data
+    logger.info(f"Returning default data for SME {sme_id}")
     return {
         "sme_id": sme_id,
         "credit_score": {
@@ -116,6 +213,9 @@ def get_dashboard(sme_id: int):
 
 @app.get("/api/smes/{sme_id}/credit-score")
 def get_credit_score(sme_id: int):
+    if sme_id in uploaded_data_store:
+        return uploaded_data_store[sme_id]['credit_score']
+    
     return {
         "score": 75,
         "rating": "B+",

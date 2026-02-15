@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { Upload, FileSpreadsheet, AlertCircle } from 'lucide-react';
-import { uploadAndAnalyze } from '../services/api';
+import { Upload, FileSpreadsheet, AlertCircle, CheckCircle } from 'lucide-react';
 
 const FileUpload = ({ onUploadSuccess }) => {
   const [file, setFile] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(false);
 
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
@@ -16,6 +16,7 @@ const FileUpload = ({ onUploadSuccess }) => {
       if (validTypes.includes(fileExtension)) {
         setFile(selectedFile);
         setError(null);
+        setSuccess(false);
       } else {
         setError('Please upload a CSV or Excel file');
         setFile(null);
@@ -24,17 +25,50 @@ const FileUpload = ({ onUploadSuccess }) => {
   };
 
   const handleUpload = async () => {
-    if (!file)
-      alert('Please select a file') 
+    // FIXED: Proper if block syntax
+    if (!file) {
+      alert('Please select a file');
       return;
+    }
 
     setUploading(true);
     setError(null);
+    setSuccess(false);
 
     try {
-      const result = await uploadAndAnalyze(file);
-      onUploadSuccess(result);
-      alert('File analyzed successfully! Check the dashboard for insights.');
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('sme_id', '1');
+
+      const response = await fetch('/api/analyze', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || 'Upload failed');
+      }
+
+      const result = await response.json();
+      
+      setSuccess(true);
+      setFile(null);
+      
+      // Clear file input
+      document.getElementById('file-upload').value = '';
+      
+      // Notify parent component to refresh dashboard
+      if (onUploadSuccess) {
+        onUploadSuccess(result);
+      }
+      
+      // Show success message for 3 seconds then redirect to dashboard
+      setTimeout(() => {
+        window.location.hash = '#dashboard';
+        window.location.reload();
+      }, 2000);
+
     } catch (err) {
       setError(err.message || 'Upload failed');
       console.error('Upload error:', err);
@@ -49,7 +83,7 @@ const FileUpload = ({ onUploadSuccess }) => {
         <FileSpreadsheet size={48} style={styles.icon} />
         <h3 style={styles.title}>Upload Financial Data</h3>
         <p style={styles.description}>
-          Upload your CSV or Excel file containing sales and financial data
+          Upload your CSV or Excel file containing financial data (date, revenue, expenses)
         </p>
 
         <input
@@ -81,6 +115,13 @@ const FileUpload = ({ onUploadSuccess }) => {
           </div>
         )}
 
+        {success && (
+          <div style={styles.success}>
+            <CheckCircle size={16} />
+            <span>File uploaded successfully! Redirecting to dashboard...</span>
+          </div>
+        )}
+
         <button
           onClick={handleUpload}
           disabled={!file || uploading}
@@ -91,6 +132,12 @@ const FileUpload = ({ onUploadSuccess }) => {
         >
           {uploading ? 'Analyzing...' : 'Upload & Analyze'}
         </button>
+
+        {uploading && (
+          <div style={styles.loadingBar}>
+            <div style={styles.loadingBarFill}></div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -122,6 +169,7 @@ const styles = {
   description: {
     color: '#64748b',
     marginBottom: '2rem',
+    fontSize: '0.95rem',
   },
   fileInput: {
     display: 'none',
@@ -167,6 +215,18 @@ const styles = {
     borderRadius: '8px',
     fontSize: '0.875rem',
   },
+  success: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '0.5rem',
+    marginTop: '1rem',
+    padding: '0.75rem',
+    backgroundColor: '#dcfce7',
+    color: '#16a34a',
+    borderRadius: '8px',
+    fontSize: '0.875rem',
+  },
   uploadButton: {
     marginTop: '1.5rem',
     padding: '0.875rem 2rem',
@@ -182,6 +242,19 @@ const styles = {
   uploadButtonDisabled: {
     backgroundColor: '#cbd5e1',
     cursor: 'not-allowed',
+  },
+  loadingBar: {
+    marginTop: '1rem',
+    height: '4px',
+    backgroundColor: '#e2e8f0',
+    borderRadius: '2px',
+    overflow: 'hidden',
+  },
+  loadingBarFill: {
+    height: '100%',
+    width: '100%',
+    backgroundColor: '#1e40af',
+    animation: 'loading 1.5s ease-in-out infinite',
   },
 };
 
